@@ -1,0 +1,50 @@
+@page "/"
+@inject HttpClient Http
+@using System.Net.Http.Json
+
+<div class="row g-4 mb-2">
+    <div class="col-12 col-lg-4">
+        <div class="card shadow-glow h-100">
+            <div class="card-body">
+                <h1 class="h4 mb-0 no-focus-outline">NestProxy</h1>
+                <p class="text-secondary small mb-0">Dashboard summary</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-12 col-lg-8">
+        <div class="card shadow-glow h-100">
+            <div class="card-body">
+                @if (_summary is null)
+                {
+                        <div class="text-secondary">Loading...</div>
+                }
+                else
+                {
+                        <div class="row text-center gy-3">
+                                <div class="col-4">
+                                        <div class="text-uppercase small text-secondary">Total</div>
+                                        <div class="display-6 fw-semibold">@_summary.TotalCameras</div>
+                                </div>
+                                <div class="col-4 border-start border-end border-dark-subtle">
+                                        <div class="text-uppercase small text-secondary">Enabled</div>
+                                        <div class="display-6 fw-semibold text-success">@_summary.Enabled</div>
+                                </div>
+                                <div class="col-4">
+                                        <div class="text-uppercase small text-secondary">Running</div>
+                                        <div class="display-6 fw-semibold text-info">@_summary.Running</div>
+                                </div>
+                        </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    class Summary { public int TotalCameras { get; set; } public int Enabled { get; set; } public int Running { get; set; } }
+    Summary? _summary;
+    protected override async Task OnInitializedAsync()
+    {
+        _summary = await Http.GetFromJsonAsync<Summary>("api/status/summary");
+    }
+}

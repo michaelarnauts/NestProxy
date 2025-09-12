@@ -1,0 +1,122 @@
+@page "/cameras"
+@inject HttpClient Http
+@* Using moved to _Imports *@
+@using System.Net.Http.Json
+
+<div class="d-flex flex-wrap align-items-center mb-3 gap-3">
+    <h1 class="h3 mb-0">Cameras</h1>
+    <a class="btn btn-sm btn-outline-primary" href="api/auth/login">
+        <span class="me-1" style="font-size:.85rem;">&#x21bb;</span> Connect / Refresh
+    </a>
+</div>
+
+@if (_cameras is null)
+{
+        <div class="text-secondary">Loading...</div>
+}
+else if (_cameras.Count == 0)
+{
+        <div class="alert alert-warning shadow-glow small">No cameras found. Ensure you have authorized access.</div>
+}
+else
+{
+    <div class="card card-clip shadow-glow">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle table-borderless mb-0">
+                        <thead class="table-dark bg-opacity-50">
+                            <tr class="small text-uppercase text-secondary">
+                                <th>Name</th>
+                                <th>Room</th>
+                                <th class="text-center">Enabled</th>
+                                <th>Local URL</th>
+                                <th class="text-center">Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var camera in _cameras)
+                        {
+                            var friendly = GetFriendlyName(camera);
+                            <tr>
+                                <td class="fw-medium text-truncate" style="max-width:220px;" title="@camera.DisplayName">@friendly</td>
+                                <td>@camera.Room</td>
+                                <td class="text-center">@if(camera.IsEnabled){<span class="badge text-bg-success badge-status">On</span>} else {<span class="badge text-bg-secondary badge-status">Off</span>}</td>
+                                <td><code class="small">@camera.LocalRtspUrl</code></td>
+                                <td class="text-center">@if(camera.IsRunning){<span class="badge text-bg-info badge-status">Running</span>} else {<span class="badge text-bg-dark badge-status">Idle</span>}</td>
+                                <td class="text-end">
+                                    @if (camera.IsEnabled)
+                                    {
+                                        <button class="btn btn-sm btn-outline-warning" @onclick="() => Toggle(camera, false)">Disable</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-success" @onclick="() => Toggle(camera, true)">Enable</button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+}
+
+<div class="accordion shadow-glow mt-3" id="partnerGuide">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="partnerGuideHeading">
+            <button class="accordion-button collapsed small" type="button" data-bs-toggle="collapse" data-bs-target="#partnerGuideBody" aria-expanded="false" aria-controls="partnerGuideBody">
+                Partner Connections Manager Setup (After Authenticating)
+            </button>
+        </h2>
+        <div id="partnerGuideBody" class="accordion-collapse collapse" aria-labelledby="partnerGuideHeading" data-bs-parent="#partnerGuide">
+            <div class="accordion-body small">
+                <ol class="mb-3">
+                    <li>After a successful <strong>Connect / Refresh</strong>, open the <a class="link-plain" target="_blank" href="https://nestservices.google.com/partnerconnections">Partner Connections Manager</a>.</li>
+                    <li>Select the same Device Access Project you configured on the <em>Settings</em> page (matches your <code>Project ID</code>).</li>
+                    <li>Open the project details (Manage / Configure) and enable every available option / capability (events, camera streaming, structures, etc.).</li>
+                    <li>Return here and click <strong>Connect / Refresh</strong> again to pull updated camera capabilities.</li>
+                </ol>
+                <p class="mb-0">If cameras still don’t appear, verify the Client ID linkage in the Device Access Console and that your Google account is a test user on the OAuth consent screen.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    List<Camera>? _cameras;
+    string GetFriendlyName(Camera camera)
+    {
+        if (!string.IsNullOrWhiteSpace(camera.DisplayName) && !camera.DisplayName.Contains("/"))
+            return camera.DisplayName;
+        if (!string.IsNullOrWhiteSpace(camera.Room))
+            return camera.Room!;
+        // fallback: last segment of resource name
+        if (!string.IsNullOrWhiteSpace(camera.DisplayName) && camera.DisplayName.Contains('/'))
+        {
+            var last = camera.DisplayName.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+            if (!string.IsNullOrWhiteSpace(last) && last.Length > 12)
+                return last.Substring(0, 12) + "…";
+            return last ?? camera.DisplayName;
+        }
+        return "Camera " + camera.Id;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+    async Task Load()
+    {
+        _cameras = await Http.GetFromJsonAsync<List<Camera>>("api/cameras");
+        StateHasChanged();
+    }
+    async Task Toggle(Camera camera, bool enable)
+    {
+        var response = await Http.PostAsync($"api/cameras/{camera.Id}/{(enable ? "enable" : "disable")}", null);
+        if (response.IsSuccessStatusCode)
+        {
+            await Load();
+        }
+    }
+}

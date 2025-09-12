@@ -1,0 +1,99 @@
+@page "/settings"
+@inject HttpClient Http
+@using System.Net.Http.Json
+
+<div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
+    <div>
+        <h1 class="h3 mb-0">Settings</h1>
+        <div class="text-secondary small">Google Device Access OAuth</div>
+    </div>
+</div>
+
+@if (_model is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+        <div class="card shadow-glow mb-3">
+            <div class="card-body">
+                <form @onsubmit="Save" class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Client ID</label>
+                        <input class="form-control form-control-sm" @bind="_model.ClientId" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Client Secret</label>
+                        <input class="form-control form-control-sm" @bind="_model.ClientSecret" type="password" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Project ID</label>
+                        <input class="form-control form-control-sm" @bind="_model.ProjectId" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Redirect URI</label>
+                        <input class="form-control form-control-sm" @bind="_model.RedirectUri" />
+                    </div>
+                    <div class="col-12 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-primary btn-sm px-4">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+                <p class="text-secondary small">After updating, re-authenticate from the Cameras page.</p>
+
+                <div class="accordion shadow-glow" id="gcpGuide">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="gcpGuideHeading">
+                            <button class="accordion-button collapsed small" type="button" data-bs-toggle="collapse" data-bs-target="#gcpGuideBody" aria-expanded="false" aria-controls="gcpGuideBody">
+                                Google Cloud & Device Access Setup Guide
+                            </button>
+                        </h2>
+                        <div id="gcpGuideBody" class="accordion-collapse collapse" aria-labelledby="gcpGuideHeading" data-bs-parent="#gcpGuide">
+                            <div class="accordion-body small">
+                                <ol class="mb-3">
+                                    <li>Open the <a class="link-plain" target="_blank" href="https://console.cloud.google.com/">Google Cloud Console</a> and (if needed) create a Project (top bar &raquo; <em>Select a project</em> &raquo; <strong>NEW PROJECT</strong>).</li>
+                                    <li>Ensure the Project is selected (top bar &raquo; <em>Select a project</em>).</li>
+                                    <li>Enable the <strong>Smart Device Management API</strong> (APIs &amp; Services &raquo; Library &raquo; search "Smart Device Management" &raquo; Enable).</li>
+                                    <li>Configure the <a class="link-plain" target="_blank" href="https://console.cloud.google.com/apis/credentials/consent">OAuth Consent Screen</a>: choose <em>External</em>, fill required app info, skip optional assets, add your Google account as a Test User, then Finish.</li>
+                                    <li>Create an <a class="link-plain" target="_blank" href="https://console.cloud.google.com/auth/clients">OAuth 2.0 Client</a>: choose Application type <em>Web application</em>, give the client a Name and add the Redirect URI displayed above or use a custom one with a public domain name.</li>
+                                    <li>Save and note the generated <code>Client ID</code> and <code>Client Secret</code>, then paste them above. If you used a custom <code>Redirect URI</code>, also paste it above.</li>
+                                    <li>Open the <a class="link-plain" target="_blank" href="https://console.cloud.google.com/auth/audience">Google Auth Platform Audience</a> page and Publish the app.</li>
+                                    <li>Visit the <a class="link-plain" target="_blank" href="https://console.nest.google.com/device-access">Device Access Console</a>, create a Project if you have not already, and ensure it links to your Client ID. No need to enable events.</li>
+                                    <li>Save and note the generated <code>Project ID</code>, then paste it above and <strong>Save</strong> the settings.</li>
+                                    <li>Go to Cameras &raquo; <em>Connect / Refresh</em> to complete the authentication.</li>
+                                </ol>
+                                <p class="mb-0">Keep your Client Secret private. Regenerate credentials in Google Cloud if you suspect exposure.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+}
+
+@code {
+    GoogleOptions? _model;
+    string? _error;
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+    async Task Load()
+    {
+        _model = await Http.GetFromJsonAsync<GoogleOptions>("api/settings/google");
+    }
+    async Task Save()
+    {
+        _error = null;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/settings/google", _model);
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = "Save failed";
+            }
+        }
+        catch (Exception ex) { _error = ex.Message; }
+        if (_error != null) Console.Error.WriteLine(_error);
+    }
+    class GoogleOptions { public string ClientId { get; set; } = string.Empty; public string ClientSecret { get; set; } = string.Empty; public string ProjectId { get; set; } = string.Empty; public string RedirectUri { get; set; } = string.Empty; }
+}

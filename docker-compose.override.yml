@@ -1,0 +1,17 @@
+services:
+  nestproxy:
+    labels:
+      com.microsoft.visual-studio.project-name: "NestProxy.Server"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_HTTP_PORTS=4558
+      - ASPNETCORE_HTTPS_PORTS=4559
+    ports:
+      - "4558:4558"
+      - "4559:4559"
+      - "8554:8554"
+    volumes:
+      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
+      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets:ro
+      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
+      - ${APPDATA}/ASP.NET/Https:/root/.aspnet/https:ro

@@ -1,0 +1,6 @@
+services:
+  nestproxy:
+    image: ${DOCKER_REGISTRY-}nestproxy
+    build:
+      context: .
+      dockerfile: Dockerfile

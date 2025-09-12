@@ -1,0 +1,115 @@
+:root {
+  --brand-primary: #2563eb; /* blue-600 */
+  --brand-primary-rgb: 37,99,235;
+  --brand-accent: #f59e0b; /* amber-500 */
+  --brand-bg: #0f172a; /* slate-900 */
+  --brand-bg-alt: #1e293b; /* slate-800 */
+  --brand-surface: #ffffff;
+  --brand-border: #334155; /* slate-700 */
+  --brand-success: #10b981;
+  --brand-danger: #ef4444;
+  --brand-warning: #f59e0b;
+  --brand-info: #0ea5e9;
+}
+
+body {
+  background: linear-gradient(145deg, var(--brand-bg) 0%, #111b2e 60%, #0f1a2c 100%);
+  color: #e2e8f0;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Refine focus ring to avoid large default outline around brand */
+.navbar-brand, .nav-link, .btn {
+  outline: none !important;
+}
+.navbar-brand:focus, .navbar-brand:focus-visible,
+.nav-link:focus, .nav-link:focus-visible,
+.btn:focus, .btn:focus-visible {
+  box-shadow: 0 0 0 .15rem rgba(var(--brand-primary-rgb), .55), 0 0 0 .3rem rgba(0,0,0,.35);
+  border-radius: .65rem;
+}
+
+.navbar-brand span {
+  font-weight: 600;
+  letter-spacing: .5px;
+}
+
+.card, .table, .form-control, .btn {
+  border-radius: .65rem;
+}
+
+.table thead th { border-bottom: 1px solid #24304a; }
+.table tbody tr:hover { background: rgba(255,255,255,.03); }
+
+main.container {
+  padding-top: 1.75rem;
+  padding-bottom: 2.25rem;
+  flex: 1 1 auto;
+}
+
+.footer {
+  font-size: .825rem;
+  color: #94a3b8;
+}
+
+.shadow-glow {
+  box-shadow: 0 0 0 1px rgba(255,255,255,.04), 0 4px 16px -4px rgba(var(--brand-primary-rgb), .4), 0 2px 6px -2px rgba(0,0,0,.5);
+}
+
+.badge-status {
+  font-weight: 500;
+  letter-spacing: .25px;
+}
+
+.gradient-bar {
+  height:4px;
+  background: linear-gradient(90deg,var(--brand-primary),var(--brand-accent));
+  border-radius: 2px;
+  margin-top:.25rem;
+}
+
+.link-plain { text-decoration:none; }
+.link-plain:hover { text-decoration:underline; }
+
+.form-label { font-weight:500; letter-spacing:.25px; }
+
+/* Loading placeholder alignment */
+#app > .app-loading { flex:1; display:flex; align-items:center; justify-content:center; }
+
+/* Accordion overrides for readability */
+.accordion-item {
+  background:#142132;
+  border:1px solid #243246;
+}
+.accordion-button {
+  background:#18293c;
+  color:#e2e8f0;
+  font-weight:500;
+}
+.accordion-button.collapsed {
+  background:#142132;
+  color:#cbd5e1;
+}
+.accordion-button:not(.collapsed) {
+  box-shadow: inset 0 -1px 0 rgba(255,255,255,.05),0 0 0 1px rgba(var(--brand-primary-rgb),.4);
+  border-bottom:1px solid #243246;
+}
+.accordion-button:focus { box-shadow: 0 0 0 .15rem rgba(var(--brand-primary-rgb), .4); }
+.accordion-body { color:#f1f5f9; line-height:1.4; }
+.accordion-body a { color: var(--brand-accent); }
+.accordion-body a:hover { color: #ffb347; }
+.accordion-body ol { padding-left:1.15rem; }
+.accordion-body li { margin-bottom:.4rem; }
+
+/* Utility: suppress focus outline when element is programmatically focused */
+.no-focus-outline:focus, .no-focus-outline:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure inner content (tables, responsive wrappers) honor rounded corners */
+.card.card-clip {
+  overflow: hidden;
+}
+.card.card-clip .table-responsive { margin-bottom: 0; }
