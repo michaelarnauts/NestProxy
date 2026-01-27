@@ -24,7 +24,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -49,7 +49,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -72,7 +72,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -97,7 +97,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -125,7 +125,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -148,7 +148,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -175,7 +175,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -198,7 +198,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -218,7 +218,7 @@ public class RtspProtocolTests
         var serializer = new RtspMessageSerializer();
 
         // Act
-        await serializer.SerializeAsync(request, stream);
+        await serializer.SerializeAsync(request, stream, TestContext.Current.CancellationToken);
 
         // Assert
         stream.Position = 0;
@@ -241,7 +241,7 @@ public class RtspProtocolTests
         var serializer = new RtspMessageSerializer();
 
         // Act
-        await serializer.SerializeAsync(request, stream);
+        await serializer.SerializeAsync(request, stream, TestContext.Current.CancellationToken);
 
         // Assert
         stream.Position = 0;
@@ -263,7 +263,7 @@ public class RtspProtocolTests
         var serializer = new RtspMessageSerializer();
 
         // Act
-        await serializer.SerializeAsync(response, stream);
+        await serializer.SerializeAsync(response, stream, TestContext.Current.CancellationToken);
 
         // Assert
         stream.Position = 0;
@@ -287,7 +287,7 @@ public class RtspProtocolTests
         var serializer = new RtspMessageSerializer();
 
         // Act
-        await serializer.SerializeAsync(response, stream);
+        await serializer.SerializeAsync(response, stream, TestContext.Current.CancellationToken);
 
         // Assert
         stream.Position = 0;
@@ -313,7 +313,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -334,7 +334,7 @@ public class RtspProtocolTests
         var serializer = new RtspMessageSerializer();
 
         // Act
-        await serializer.SerializeAsync(frame, stream);
+        await serializer.SerializeAsync(frame, stream, TestContext.Current.CancellationToken);
 
         // Assert
         var result = stream.ToArray();
@@ -361,8 +361,8 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message1 = await parser.ParseAsync(stream);
-        var message2 = await parser.ParseAsync(stream);
+        var message1 = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
+        var message2 = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message1);
@@ -383,7 +383,7 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -407,9 +407,9 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        await serializer.SerializeAsync(originalRequest, stream);
+        await serializer.SerializeAsync(originalRequest, stream, TestContext.Current.CancellationToken);
         stream.Position = 0;
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);
@@ -437,9 +437,9 @@ public class RtspProtocolTests
         var parser = new RtspMessageParser();
 
         // Act
-        await serializer.SerializeAsync(originalResponse, stream);
+        await serializer.SerializeAsync(originalResponse, stream, TestContext.Current.CancellationToken);
         stream.Position = 0;
-        var message = await parser.ParseAsync(stream);
+        var message = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         // Assert
         Assert.NotNull(message);

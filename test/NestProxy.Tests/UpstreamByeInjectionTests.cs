@@ -84,7 +84,7 @@ public class UpstreamByeInjectionTests
         var promoteMethod = typeof(UpstreamOrchestrator).GetMethod("PromoteStagingSession", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         promoteMethod!.Invoke(orchestrator, [staging]);
 
-        await Task.Delay(150); // allow async task to run async teardown & injection
+        await Task.Delay(150, TestContext.Current.CancellationToken); // allow async task to run async teardown & injection
         Assert.Contains(local.RtcpPackets, pkt => pkt.Length >= 2 && pkt[1] == 203);
     }
 }

@@ -19,32 +19,32 @@ public sealed class RtspClientIntegrationTests
         using RtspClient client = new(new RtspTcpTransport("127.0.0.1", server.Port));
         Uri uri = new($"rtsp://127.0.0.1:{server.Port}/media");
 
-        RtspResponse options = await client.OptionsAsync(uri);
+        RtspResponse options = await client.OptionsAsync(uri, TestContext.Current.CancellationToken);
         Assert.Equal(200, options.ReturnCode);
         Assert.Equal("OPTIONS, DESCRIBE, SETUP, PLAY, PAUSE, GET_PARAMETER, TEARDOWN", options.Headers["Public"]);
 
-        RtspResponse describe = await client.DescribeAsync(uri);
+        RtspResponse describe = await client.DescribeAsync(uri, TestContext.Current.CancellationToken);
         Assert.Equal(200, describe.ReturnCode);
         Assert.Equal("application/sdp", describe.ContentType);
         Assert.Contains("m=video", describe.Body);
 
-        RtspResponse setup = await client.SetupAsync(new Uri(uri, "trackID=1"), "RTP/AVP/TCP;interleaved=0-1");
+        RtspResponse setup = await client.SetupAsync(new Uri(uri, "trackID=1"), "RTP/AVP/TCP;interleaved=0-1", cancellationToken: TestContext.Current.CancellationToken);
         Assert.Equal(200, setup.ReturnCode);
         Assert.Equal("12345678", setup.Session);
         Assert.Equal("RTP/AVP/TCP;interleaved=0-1", setup.Headers["Transport"]);
 
-        RtspResponse play = await client.PlayAsync(uri, setup.Session!);
+        RtspResponse play = await client.PlayAsync(uri, setup.Session!, TestContext.Current.CancellationToken);
         Assert.Equal(200, play.ReturnCode);
         Assert.Equal("npt=0-", play.Headers["Range"]);
 
-        RtspResponse pause = await client.PauseAsync(uri, setup.Session!);
+        RtspResponse pause = await client.PauseAsync(uri, setup.Session!, TestContext.Current.CancellationToken);
         Assert.Equal(200, pause.ReturnCode);
 
-        RtspResponse getParameter = await client.GetParameterAsync(uri, setup.Session);
+        RtspResponse getParameter = await client.GetParameterAsync(uri, setup.Session, TestContext.Current.CancellationToken);
         Assert.Equal(200, getParameter.ReturnCode);
         Assert.Equal(setup.Session, getParameter.Session);
 
-        RtspResponse teardown = await client.TeardownAsync(uri, setup.Session!);
+        RtspResponse teardown = await client.TeardownAsync(uri, setup.Session!, TestContext.Current.CancellationToken);
         Assert.Equal(200, teardown.ReturnCode);
 
         Assert.Equal(["OPTIONS", "DESCRIBE", "SETUP", "PLAY", "PAUSE", "GET_PARAMETER", "TEARDOWN"], server.ReceivedMethods);
@@ -62,7 +62,7 @@ public sealed class RtspClientIntegrationTests
         Uri uri = new($"rtsp://127.0.0.1:{server.Port}/media");
 
         RtspRequest request = new(RtspMethod.OPTIONS, uri, RtspVersion.Version1_0);
-        RtspResponse response = await client.SendRequestAsync(request);
+        RtspResponse response = await client.SendRequestAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal(200, response.ReturnCode);
         Assert.True(response.CSeq > 0);

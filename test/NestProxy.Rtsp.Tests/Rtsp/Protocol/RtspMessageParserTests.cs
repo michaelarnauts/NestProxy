@@ -1,6 +1,8 @@
 using System.Text;
+
 using NestProxy.Rtsp.Messages;
 using NestProxy.Rtsp.Protocol;
+
 using Xunit;
 
 namespace NestProxy.Rtsp.Tests.Rtsp.Protocol;
@@ -16,7 +18,7 @@ public class RtspMessageParserTests
                      "\r\n";
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var request = Assert.IsType<RtspRequest>(result);
@@ -35,7 +37,7 @@ public class RtspMessageParserTests
                      "\r\n";
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var response = Assert.IsType<RtspResponse>(result);
@@ -58,7 +60,7 @@ public class RtspMessageParserTests
                      body;
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var response = Assert.IsType<RtspResponse>(result);
@@ -80,7 +82,7 @@ public class RtspMessageParserTests
 
         var stream = new MemoryStream(message);
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var frame = Assert.IsType<InterleavedFrame>(result);
@@ -105,12 +107,12 @@ public class RtspMessageParserTests
 
         using MemoryStream stream = new MemoryStream(combined);
 
-        object? first = await parser.ParseAsync(stream);
+        object? first = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
         InterleavedFrame firstFrame = Assert.IsType<InterleavedFrame>(first);
         Assert.Equal((byte)0, firstFrame.Channel);
         Assert.Equal(firstPayload, firstFrame.Data.ToArray());
 
-        object? second = await parser.ParseAsync(stream);
+        object? second = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
         InterleavedFrame secondFrame = Assert.IsType<InterleavedFrame>(second);
         Assert.Equal((byte)1, secondFrame.Channel);
         Assert.Equal(secondPayload, secondFrame.Data.ToArray());
@@ -141,7 +143,7 @@ public class RtspMessageParserTests
                      "\r\n";
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var response = Assert.IsType<RtspResponse>(result);
@@ -159,7 +161,7 @@ public class RtspMessageParserTests
                      "\r\n";
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var request = Assert.IsType<RtspRequest>(result);
@@ -179,7 +181,7 @@ public class RtspMessageParserTests
                      "\r\n";
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var response = Assert.IsType<RtspResponse>(result);
@@ -198,7 +200,7 @@ public class RtspMessageParserTests
                      "\r\n";
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var request = Assert.IsType<RtspRequest>(result);
@@ -214,7 +216,7 @@ public class RtspMessageParserTests
         var message1 = "OPTIONS rtsp://example.com/stream RTSP/1.0\r\nCSeq: 1\r\n\r\n";
         var stream1 = new MemoryStream(Encoding.UTF8.GetBytes(message1));
 
-        await parser.ParseAsync(stream1);
+        await parser.ParseAsync(stream1, TestContext.Current.CancellationToken);
 
         parser.Reset();
 
@@ -222,7 +224,7 @@ public class RtspMessageParserTests
 
         var message2 = "RTSP/1.0 200 OK\r\nCSeq: 2\r\n\r\n";
         var stream2 = new MemoryStream(Encoding.UTF8.GetBytes(message2));
-        var result = await parser.ParseAsync(stream2);
+        var result = await parser.ParseAsync(stream2, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         Assert.IsType<RtspResponse>(result);
@@ -240,7 +242,7 @@ public class RtspMessageParserTests
                      body;
         var stream = new MemoryStream(Encoding.UTF8.GetBytes(message));
 
-        var result = await parser.ParseAsync(stream);
+        var result = await parser.ParseAsync(stream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var response = Assert.IsType<RtspResponse>(result);
@@ -263,11 +265,11 @@ public class RtspMessageParserTests
         original.Headers["Range"] = "npt=0.000-";
 
         var serializeStream = new MemoryStream();
-        await serializer.SerializeAsync(original, serializeStream);
+        await serializer.SerializeAsync(original, serializeStream, TestContext.Current.CancellationToken);
 
         serializeStream.Position = 0;
 
-        var result = await parser.ParseAsync(serializeStream);
+        var result = await parser.ParseAsync(serializeStream, TestContext.Current.CancellationToken);
 
         Assert.NotNull(result);
         var parsed = Assert.IsType<RtspRequest>(result);

@@ -6,6 +6,8 @@ using NestProxy.Server.Logging;
 using NestProxy.Server.Services;
 using NestProxy.Server.Streaming.Downstream.Server;
 
+using Scalar.AspNetCore;
+
 using Serilog;
 
 // Configure bootstrap logger.
@@ -90,7 +92,7 @@ try
     builder.Services.AddControllers();
     builder.Services.AddRazorPages();
     builder.Services.AddEndpointsApiExplorer();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddOpenApi();
 
     // CORS (simple allow any for now)
     builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
@@ -102,8 +104,8 @@ try
 
     if (app.Environment.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI();
+        app.MapOpenApi();
+        app.MapScalarApiReference();
     }
 
     app.UseCors();

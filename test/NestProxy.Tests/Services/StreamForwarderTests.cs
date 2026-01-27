@@ -45,7 +45,7 @@ public class StreamForwarderTests
         var (forwarder, cam, session, stats) = BuildHarness();
         byte[] rtp = BuildRtpPacket(ssrc: 0x01020304, payloadType: cam.VideoPayloadType, seq: 1, ts: 90000);
 
-        await forwarder.ForwardRtpAsync(cam.CameraId, rtp);
+        await forwarder.ForwardRtpAsync(cam.CameraId, rtp, TestContext.Current.CancellationToken);
 
         // Force log flush (not strictly needed) then inspect snapshot
         var snapshot1 = stats.TrySnapshot(cam.CameraId, session.SessionId) as IEnumerable<object>;
@@ -60,8 +60,8 @@ public class StreamForwarderTests
         byte[] first = BuildRtpPacket(0x0A0B0C0Du, cam.VideoPayloadType, 10, 1234);
         byte[] second = BuildRtpPacket(0x0A0B0C0Du, cam.VideoPayloadType, 11, 1234 + 3600);
 
-        await forwarder.ForwardRtpAsync(cam.CameraId, first);
-        await forwarder.ForwardRtpAsync(cam.CameraId, second);
+        await forwarder.ForwardRtpAsync(cam.CameraId, first, TestContext.Current.CancellationToken);
+        await forwarder.ForwardRtpAsync(cam.CameraId, second, TestContext.Current.CancellationToken);
 
         var snapshot2 = stats.TrySnapshot(cam.CameraId, session.SessionId) as IEnumerable<object>;
         int rtp2 = ExtractRtp(snapshot2!, cam.VideoPayloadType);

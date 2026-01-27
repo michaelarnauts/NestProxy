@@ -1,6 +1,5 @@
 using System.Net;
 using System.Text;
-using System.Threading;
 
 using NestProxy.Rtsp.Client;
 using NestProxy.Rtsp.Messages;
@@ -44,7 +43,7 @@ public sealed class RtspConnectionTests
         RtspConnection connection = new(transport);
 
         RtspRequestOptions request = new() { RtspUri = new Uri("rtsp://example.com") };
-        await connection.SendMessageAsync(request);
+        await connection.SendMessageAsync(request, TestContext.Current.CancellationToken);
 
         Assert.NotEmpty(request.Headers["CSeq"]);
         Assert.Equal("1", request.Headers["CSeq"]);
@@ -58,9 +57,9 @@ public sealed class RtspConnectionTests
 
         RtspRequestOptions request1 = new() { RtspUri = new Uri("rtsp://example.com") };
         RtspRequestOptions request2 = new() { RtspUri = new Uri("rtsp://example.com") };
-        
-        await connection.SendMessageAsync(request1);
-        await connection.SendMessageAsync(request2);
+
+        await connection.SendMessageAsync(request1, TestContext.Current.CancellationToken);
+        await connection.SendMessageAsync(request2, TestContext.Current.CancellationToken);
 
         Assert.Equal("1", request1.Headers["CSeq"]);
         Assert.Equal("2", request2.Headers["CSeq"]);
@@ -74,8 +73,8 @@ public sealed class RtspConnectionTests
 
         RtspRequestOptions request = new() { RtspUri = new Uri("rtsp://example.com") };
         request.Headers["CSeq"] = "999";
-        
-        await connection.SendMessageAsync(request);
+
+        await connection.SendMessageAsync(request, TestContext.Current.CancellationToken);
 
         Assert.Equal("999", request.Headers["CSeq"]);
     }
@@ -88,10 +87,10 @@ public sealed class RtspConnectionTests
         RtspConnection connection = new(transport);
 
         RtspRequestOptions request = new() { RtspUri = new Uri("rtsp://example.com/test") };
-        await connection.SendMessageAsync(request);
+        await connection.SendMessageAsync(request, TestContext.Current.CancellationToken);
 
         Assert.True(writeStream.Length > 0);
-        
+
         string sent = Encoding.ASCII.GetString(writeStream.ToArray());
         Assert.Contains("OPTIONS rtsp://example.com/test RTSP/1.0", sent);
     }
@@ -101,14 +100,14 @@ public sealed class RtspConnectionTests
     {
         MemoryStream stream = new();
         byte[] responseData = Encoding.ASCII.GetBytes("RTSP/1.0 200 OK\r\nCSeq: 1\r\n\r\n");
-        await stream.WriteAsync(responseData);
+        await stream.WriteAsync(responseData, TestContext.Current.CancellationToken);
         stream.Position = 0;
 
         FakeTransport transport = new() { Stream = stream };
         RtspConnection connection = new(transport);
 
         connection.Start();
-        RtspMessage message = await connection.Messages.ReadAsync();
+        RtspMessage message = await connection.Messages.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.NotNull(message);
         Assert.IsType<RtspResponse>(message);
@@ -123,14 +122,14 @@ public sealed class RtspConnectionTests
         MemoryStream stream = new();
 
         byte[] frameData = [0x24, 0x00, 0x00, 0x04, 0xDE, 0xAD, 0xBE, 0xEF];
-        await stream.WriteAsync(frameData);
+        await stream.WriteAsync(frameData, TestContext.Current.CancellationToken);
         stream.Position = 0;
 
         FakeTransport transport = new() { Stream = stream };
         RtspConnection connection = new(transport);
 
         connection.Start();
-        InterleavedFrame frame = await connection.InterleavedFrames.ReadAsync();
+        InterleavedFrame frame = await connection.InterleavedFrames.ReadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(0, frame.Channel);
         Assert.Equal(4, frame.Data.Length);
@@ -144,7 +143,7 @@ public sealed class RtspConnectionTests
         RtspConnection connection = new(transport);
 
         connection.Start();
-        
+
         Assert.Throws<InvalidOperationException>(() => connection.Start());
     }
 
@@ -166,8 +165,8 @@ public sealed class RtspConnectionTests
         connection.Dispose();
 
         RtspRequestOptions request = new() { RtspUri = new Uri("rtsp://example.com") };
-        
-        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await connection.SendMessageAsync(request));
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await connection.SendMessageAsync(request, TestContext.Current.CancellationToken));
     }
 
     private sealed class FakeTransport : IRtspTransport

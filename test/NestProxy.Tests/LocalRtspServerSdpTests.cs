@@ -92,7 +92,8 @@ public class LocalRtspServerSdpTests
         var rtpPacket = new byte[12];
         rtpPacket[0] = 0x80;
         rtpPacket[1] = 98;
-        await fixture.Server.ForwardRtpAsync("cam-3", rtpPacket);
+
+        await fixture.Server.ForwardRtpAsync("cam-3", rtpPacket, TestContext.Current.CancellationToken);
 
         Assert.True(received);
     }
@@ -120,7 +121,8 @@ public class LocalRtspServerSdpTests
         var rtcpPacket = new byte[8];
         rtcpPacket[0] = 0x81;
         rtcpPacket[1] = 201;
-        await fixture.Server.ForwardRtcpAsync("cam-5", rtcpPacket);
+
+        await fixture.Server.ForwardRtcpAsync("cam-5", rtcpPacket, TestContext.Current.CancellationToken);
 
         Assert.True(received);
     }

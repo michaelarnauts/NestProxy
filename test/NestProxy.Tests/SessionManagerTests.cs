@@ -44,7 +44,9 @@ public class SessionManagerTests
         var (mgr, _, cam, connection) = Create();
         ClientSession s1 = mgr.GetOrCreateSession(cam, connection);
         s1.LastActivityUtc = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        await Task.Delay(60);
+
+        await Task.Delay(60, TestContext.Current.CancellationToken);
+
         int removed = mgr.SweepExpiredSessions();
         Assert.Equal(1, removed);
         Assert.Empty(cam.Sessions);

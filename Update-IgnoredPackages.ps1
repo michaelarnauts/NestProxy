@@ -80,13 +80,20 @@ param(
   [string]$IgnoredFile = "ignored-packages.json",
   [string]$PublishOutputRoot = ".publish-temp/ignored-packages",
   [string[]]$ForcedIgnorePatterns = @(
-    '^Microsoft\.TestPlatform\.',
-    '^Microsoft\.NET\.Test\.Sdk$',
-    '^Mono\.TextTemplating$',
-    '^Microsoft\.NET\.ILLink\.Tasks$',
-    '^Microsoft\.NET\.Sdk\.WebAssembly\.Pack$',
-    '^Microsoft\.Build(\.|$)',
-    '^Microsoft\.CodeAnalysis(\.|$)'
+    # First-party .NET ecosystem
+    '^Microsoft\.',
+    '^Mono\.',
+    '^System\.',
+  
+    # Benchmarking & profiling tools (BenchmarkDotNet + dependencies)
+    '^BenchmarkDotNet',
+    '^Gee\.External\.Capstone',
+    '^Iced',
+    '^Perfolizer',
+    '^Pragmastat',
+    
+    # CLI tooling
+    '^CommandLineParser'
   ),
   [switch]$SkipCleanPublish,
   [switch]$DryRun,

@@ -34,7 +34,7 @@ public class CameraSupervisorServiceTests
             var provider = services.BuildServiceProvider();
             var hosted = provider.GetRequiredService<IHostedService>();
             await hosted.StartAsync(CancellationToken.None);
-            await Task.Delay(50);
+            await Task.Delay(50, TestContext.Current.CancellationToken);
             await hosted.StopAsync(CancellationToken.None);
         }
         finally

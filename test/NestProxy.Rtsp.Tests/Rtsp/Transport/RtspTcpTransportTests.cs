@@ -149,7 +149,7 @@ public sealed class RtspTcpTransportTests
         server.Start();
         int port = ((IPEndPoint)server.LocalEndpoint).Port;
 
-        Task<TcpClient> acceptTask = server.AcceptTcpClientAsync();
+        ValueTask<TcpClient> acceptTask = server.AcceptTcpClientAsync(TestContext.Current.CancellationToken);
 
         using RtspTcpTransport transport = new("127.0.0.1", port);
 
@@ -179,7 +179,7 @@ public sealed class RtspTcpTransportTests
 
         using RtspTcpTransport transport = new("127.0.0.1", port);
 
-        Task<TcpClient> acceptTask1 = server.AcceptTcpClientAsync();
+        ValueTask<TcpClient> acceptTask1 = server.AcceptTcpClientAsync(TestContext.Current.CancellationToken);
         Stream stream1 = transport.GetStream();
         TcpClient serverClient1 = await acceptTask1;
         Assert.True(transport.Connected);
@@ -187,7 +187,7 @@ public sealed class RtspTcpTransportTests
         transport.Close();
         Assert.False(transport.Connected);
 
-        Task<TcpClient> acceptTask2 = server.AcceptTcpClientAsync();
+        ValueTask<TcpClient> acceptTask2 = server.AcceptTcpClientAsync(TestContext.Current.CancellationToken);
         transport.Reconnect();
         TcpClient serverClient2 = await acceptTask2;
 

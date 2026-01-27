@@ -47,7 +47,7 @@ public class GoogleAuthServiceTests
                 NullLogger<GoogleAuthService>.Instance,
                 new DummyHttpClientFactory());
 
-            var url = await svc.BuildAuthorizationUrlAsync("abc123");
+            var url = await svc.BuildAuthorizationUrlAsync("abc123", TestContext.Current.CancellationToken);
 
             Assert.Contains("client_id=cid", url);
             Assert.Contains("redirect_uri=https%3A%2F%2Fr", url);
@@ -76,11 +76,12 @@ public class GoogleAuthServiceTests
                 ProjectId = "test-project",
                 RedirectUri = "https://test"
             };
-            await settingsRepo.UpsertAsync(settings);
+
+            await settingsRepo.UpsertAsync(settings, TestContext.Current.CancellationToken);
 
             var settingsService = new GoogleSettingsService(settingsRepo);
 
-            var masked = await settingsService.GetCurrentOptionsAsync();
+            var masked = await settingsService.GetCurrentOptionsAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal("test-client", masked.ClientId);
             Assert.Equal("***", masked.ClientSecret);
@@ -109,11 +110,12 @@ public class GoogleAuthServiceTests
                 ProjectId = "test-project",
                 RedirectUri = "https://test"
             };
-            await settingsRepo.UpsertAsync(settings);
+
+            await settingsRepo.UpsertAsync(settings, TestContext.Current.CancellationToken);
 
             var settingsService = new GoogleSettingsService(settingsRepo);
 
-            var unmasked = await settingsService.GetOptionsForAuthenticationAsync();
+            var unmasked = await settingsService.GetOptionsForAuthenticationAsync(TestContext.Current.CancellationToken);
 
             Assert.Equal("test-client", unmasked.ClientId);
             Assert.Equal("super-secret", unmasked.ClientSecret);

@@ -1,6 +1,8 @@
-using FluentAssertions;
 using NestProxy.Rtsp.Messages;
 using NestProxy.Rtsp.Server;
+
+using Shouldly;
+
 using Xunit;
 
 namespace NestProxy.Rtsp.Tests;
@@ -14,8 +16,8 @@ public class RtspServerTests
         var server = new RtspServer(8554);
 
         // Assert
-        server.Port.Should().Be(8554);
-        server.IsRunning.Should().BeFalse();
+        server.Port.ShouldBe(8554);
+        server.IsRunning.ShouldBeFalse();
     }
 
     [Fact]
@@ -34,7 +36,7 @@ public class RtspServerTests
         server.RegisterHandler(RtspMethod.OPTIONS, handler);
 
         // Assert - just verify no exception
-        handlerCalled.Should().BeFalse(); // Not called yet
+        handlerCalled.ShouldBeFalse(); // Not called yet
     }
 
     [Fact]
@@ -49,7 +51,7 @@ public class RtspServerTests
             await server.StartAsync();
 
             // Assert
-            server.IsRunning.Should().BeTrue();
+            server.IsRunning.ShouldBeTrue();
         }
         finally
         {
@@ -69,7 +71,7 @@ public class RtspServerTests
         await server.StopAsync();
 
         // Assert
-        server.IsRunning.Should().BeFalse();
+        server.IsRunning.ShouldBeFalse();
     }
 
     [Fact]

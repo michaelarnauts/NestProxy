@@ -1,9 +1,11 @@
 using System.Net;
 
-using FluentAssertions;
 using NestProxy.Rtsp.Client;
 using NestProxy.Rtsp.Messages;
 using NestProxy.Rtsp.Transport;
+
+using Shouldly;
+
 using Xunit;
 
 namespace NestProxy.Rtsp.Tests;
@@ -24,31 +26,31 @@ public class RtspFlowIntegrationTests
         transport.EnqueueResponse(BuildResponse(headers: new Dictionary<string, string> { ["Session"] = "abc123" }));
         transport.EnqueueResponse(BuildResponse(headers: new Dictionary<string, string> { ["Session"] = "abc123" }));
 
-        var options = await client.OptionsAsync(baseUri);
-        var describe = await client.DescribeAsync(baseUri);
-        var setup = await client.SetupAsync(trackUri, "RTP/AVP/TCP;interleaved=0-1");
+        var options = await client.OptionsAsync(baseUri, TestContext.Current.CancellationToken);
+        var describe = await client.DescribeAsync(baseUri, TestContext.Current.CancellationToken);
+        var setup = await client.SetupAsync(trackUri, "RTP/AVP/TCP;interleaved=0-1", cancellationToken: TestContext.Current.CancellationToken);
         var sessionId = setup.Headers["Session"];
-        var play = await client.PlayAsync(baseUri, sessionId);
-        var teardown = await client.TeardownAsync(baseUri, sessionId);
+        var play = await client.PlayAsync(baseUri, sessionId, TestContext.Current.CancellationToken);
+        var teardown = await client.TeardownAsync(baseUri, sessionId, TestContext.Current.CancellationToken);
 
-        options.StatusCode.Should().Be(RtspStatusCode.OK);
-        describe.StatusCode.Should().Be(RtspStatusCode.OK);
-        setup.StatusCode.Should().Be(RtspStatusCode.OK);
-        play.StatusCode.Should().Be(RtspStatusCode.OK);
-        teardown.StatusCode.Should().Be(RtspStatusCode.OK);
+        options.StatusCode.ShouldBe(RtspStatusCode.OK);
+        describe.StatusCode.ShouldBe(RtspStatusCode.OK);
+        setup.StatusCode.ShouldBe(RtspStatusCode.OK);
+        play.StatusCode.ShouldBe(RtspStatusCode.OK);
+        teardown.StatusCode.ShouldBe(RtspStatusCode.OK);
 
-        transport.SentRequests.Select(r => r.Method).Should().ContainInOrder(
+        transport.SentRequests.Select(r => r.Method).ShouldContainInOrder(
             RtspMethod.OPTIONS,
             RtspMethod.DESCRIBE,
             RtspMethod.SETUP,
             RtspMethod.PLAY,
             RtspMethod.TEARDOWN);
 
-        transport.SentRequests.Select(r => r.CSeq).Should().ContainInOrder(1, 2, 3, 4, 5);
-        transport.SentRequests[1].Headers["Accept"].Should().Be("application/sdp");
-        transport.SentRequests[2].Headers["Transport"].Should().Be("RTP/AVP/TCP;interleaved=0-1");
-        transport.SentRequests[3].Headers["Session"].Should().Be(sessionId);
-        transport.SentRequests[4].Headers["Session"].Should().Be(sessionId);
+        transport.SentRequests.Select(r => r.CSeq).ShouldContainInOrder(1, 2, 3, 4, 5);
+        transport.SentRequests[1].Headers["Accept"].ShouldBe("application/sdp");
+        transport.SentRequests[2].Headers["Transport"].ShouldBe("RTP/AVP/TCP;interleaved=0-1");
+        transport.SentRequests[3].Headers["Session"].ShouldBe(sessionId);
+        transport.SentRequests[4].Headers["Session"].ShouldBe(sessionId);
     }
 
     [Fact]
@@ -62,18 +64,18 @@ public class RtspFlowIntegrationTests
         transport.EnqueueResponse(BuildResponse(headers: new Dictionary<string, string> { ["Session"] = "sess-001" }));
         transport.EnqueueResponse(BuildResponse(headers: new Dictionary<string, string> { ["Session"] = "sess-001" }));
 
-        var setup = await client.SetupAsync(new Uri(uri, "trackID=1"), "RTP/AVP/TCP;interleaved=0-1");
+        var setup = await client.SetupAsync(new Uri(uri, "trackID=1"), "RTP/AVP/TCP;interleaved=0-1", cancellationToken: TestContext.Current.CancellationToken);
         var sessionId = setup.Headers["Session"];
-        var keepAlive = await client.GetParameterAsync(uri, sessionId);
-        var pause = await client.PauseAsync(uri, sessionId);
+        var keepAlive = await client.GetParameterAsync(uri, sessionId, TestContext.Current.CancellationToken);
+        var pause = await client.PauseAsync(uri, sessionId, TestContext.Current.CancellationToken);
 
-        setup.StatusCode.Should().Be(RtspStatusCode.OK);
-        keepAlive.StatusCode.Should().Be(RtspStatusCode.OK);
-        pause.StatusCode.Should().Be(RtspStatusCode.OK);
+        setup.StatusCode.ShouldBe(RtspStatusCode.OK);
+        keepAlive.StatusCode.ShouldBe(RtspStatusCode.OK);
+        pause.StatusCode.ShouldBe(RtspStatusCode.OK);
 
-        transport.SentRequests.Select(r => r.Method).Should().ContainInOrder(RtspMethod.SETUP, RtspMethod.GET_PARAMETER, RtspMethod.PAUSE);
+        transport.SentRequests.Select(r => r.Method).ShouldContainInOrder(RtspMethod.SETUP, RtspMethod.GET_PARAMETER, RtspMethod.PAUSE);
         transport.SentRequests.Skip(1).Select(r => r.Headers.TryGetValue("Session", out var value) ? value : string.Empty)
-            .Should().AllBeEquivalentTo("sess-001");
+            .ShouldAllBeEquivalentTo("sess-001");
     }
 
     private static RtspResponse BuildResponse(Dictionary<string, string>? headers = null)

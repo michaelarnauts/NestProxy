@@ -1,6 +1,8 @@
 using System.Text;
+
 using NestProxy.Rtsp.Messages;
 using NestProxy.Rtsp.Protocol;
+
 using Xunit;
 
 namespace NestProxy.Rtsp.Tests.Rtsp.Protocol;
@@ -20,7 +22,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(request, stream);
+        await _serializer.SerializeAsync(request, stream, TestContext.Current.CancellationToken);
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Contains("OPTIONS rtsp://example.com:554/stream RTSP/1.0", result);
@@ -41,7 +43,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(request, stream);
+        await _serializer.SerializeAsync(request, stream, TestContext.Current.CancellationToken);
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Contains("DESCRIBE", result);
@@ -64,7 +66,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(request, stream);
+        await _serializer.SerializeAsync(request, stream, TestContext.Current.CancellationToken);
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Contains("Content-Length:", result);
@@ -84,7 +86,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(response, stream);
+        await _serializer.SerializeAsync(response, stream, TestContext.Current.CancellationToken);
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Contains("RTSP/1.0 200 OK", result);
@@ -105,7 +107,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(response, stream);
+        await _serializer.SerializeAsync(response, stream, TestContext.Current.CancellationToken);
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Contains("Content-Length: 16", result);
@@ -120,7 +122,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(frame, stream);
+        await _serializer.SerializeAsync(frame, stream, TestContext.Current.CancellationToken);
 
         var result = stream.ToArray();
         Assert.Equal((byte)'$', result[0]);
@@ -139,7 +141,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(frame, stream);
+        await _serializer.SerializeAsync(frame, stream, TestContext.Current.CancellationToken);
 
         var result = stream.ToArray();
         Assert.Equal((byte)'$', result[0]);
@@ -162,7 +164,7 @@ public class RtspMessageSerializerTests
 
         var stream = new MemoryStream();
 
-        await _serializer.SerializeAsync(request, stream);
+        await _serializer.SerializeAsync(request, stream, TestContext.Current.CancellationToken);
 
         var result = Encoding.UTF8.GetString(stream.ToArray());
         Assert.Contains("CSeq: 42", result);

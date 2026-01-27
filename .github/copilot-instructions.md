@@ -3,8 +3,8 @@
 This repository contains a .NET 9 solution that proxies Google Nest (Device Access) RTSP(S) streams to a local RTSP server, providing a stable, debuggable relay with standardized logging, token refresh handling, and optional keep-alives. The solution includes a server (core logic), a client, shared models, and tests.
 
 ## Tech stack and targets
-- Runtime: .NET 9 (TargetFramework: net9.0)
-- Language: C# 13
+- Runtime: .NET 10 (TargetFramework: net10.0)
+- Language: C# 14
 - Server-side: Minimal services with custom RTSP implementation and a local RTSP server to restream.
 - RTSP: Custom implementation in NestProxy.Rtsp.
 - Logging: Microsoft.Extensions.Logging (Serilog enabled via configuration).

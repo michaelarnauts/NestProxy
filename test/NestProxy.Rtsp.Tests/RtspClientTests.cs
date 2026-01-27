@@ -1,8 +1,11 @@
-using FluentAssertions;
 using Moq;
+
 using NestProxy.Rtsp.Client;
 using NestProxy.Rtsp.Messages;
 using NestProxy.Rtsp.Transport;
+
+using Shouldly;
+
 using Xunit;
 
 namespace NestProxy.Rtsp.Tests;
@@ -30,10 +33,10 @@ public class RtspClientTests
             .ReturnsAsync(response);
 
         // Act
-        var result = await _client.OptionsAsync(uri);
+        var result = await _client.OptionsAsync(uri, TestContext.Current.CancellationToken);
 
         // Assert
-        result.StatusCode.Should().Be(RtspStatusCode.OK);
+        result.StatusCode.ShouldBe(RtspStatusCode.OK);
         _mockTransport.Verify(t => t.SendRequestAsync(
             It.Is<RtspRequest>(r => r.Method == RtspMethod.OPTIONS && r.Uri == uri),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -54,11 +57,11 @@ public class RtspClientTests
             .ReturnsAsync(response);
 
         // Act
-        var result = await _client.DescribeAsync(uri);
+        var result = await _client.DescribeAsync(uri, TestContext.Current.CancellationToken);
 
         // Assert
-        result.StatusCode.Should().Be(RtspStatusCode.OK);
-        result.Body.Should().Be(sdpContent);
+        result.StatusCode.ShouldBe(RtspStatusCode.OK);
+        result.Body.ShouldBe(sdpContent);
         _mockTransport.Verify(t => t.SendRequestAsync(
             It.Is<RtspRequest>(r => r.Method == RtspMethod.DESCRIBE && r.Uri == uri),
             It.IsAny<CancellationToken>()), Times.Once);
@@ -78,14 +81,14 @@ public class RtspClientTests
             .ReturnsAsync(response);
 
         // Act
-        var result = await _client.SetupAsync(uri, transport);
+        var result = await _client.SetupAsync(uri, transport, cancellationToken: TestContext.Current.CancellationToken);
 
         // Assert
-        result.StatusCode.Should().Be(RtspStatusCode.OK);
-        result.Headers["Session"].Should().Be("12345678");
+        result.StatusCode.ShouldBe(RtspStatusCode.OK);
+        result.Headers["Session"].ShouldBe("12345678");
         _mockTransport.Verify(t => t.SendRequestAsync(
-            It.Is<RtspRequest>(r => r.Method == RtspMethod.SETUP && 
-                                     r.Uri == uri && 
+            It.Is<RtspRequest>(r => r.Method == RtspMethod.SETUP &&
+                                     r.Uri == uri &&
                                      r.Headers["Transport"] == transport),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -102,13 +105,13 @@ public class RtspClientTests
             .ReturnsAsync(response);
 
         // Act
-        var result = await _client.PlayAsync(uri, sessionId);
+        var result = await _client.PlayAsync(uri, sessionId, TestContext.Current.CancellationToken);
 
         // Assert
-        result.StatusCode.Should().Be(RtspStatusCode.OK);
+        result.StatusCode.ShouldBe(RtspStatusCode.OK);
         _mockTransport.Verify(t => t.SendRequestAsync(
-            It.Is<RtspRequest>(r => r.Method == RtspMethod.PLAY && 
-                                     r.Uri == uri && 
+            It.Is<RtspRequest>(r => r.Method == RtspMethod.PLAY &&
+                                     r.Uri == uri &&
                                      r.Headers["Session"] == sessionId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
@@ -125,13 +128,13 @@ public class RtspClientTests
             .ReturnsAsync(response);
 
         // Act
-        var result = await _client.TeardownAsync(uri, sessionId);
+        var result = await _client.TeardownAsync(uri, sessionId, TestContext.Current.CancellationToken);
 
         // Assert
-        result.StatusCode.Should().Be(RtspStatusCode.OK);
+        result.StatusCode.ShouldBe(RtspStatusCode.OK);
         _mockTransport.Verify(t => t.SendRequestAsync(
-            It.Is<RtspRequest>(r => r.Method == RtspMethod.TEARDOWN && 
-                                     r.Uri == uri && 
+            It.Is<RtspRequest>(r => r.Method == RtspMethod.TEARDOWN &&
+                                     r.Uri == uri &&
                                      r.Headers["Session"] == sessionId),
             It.IsAny<CancellationToken>()), Times.Once);
     }
