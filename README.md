@@ -24,9 +24,43 @@ The goal of this project is to provide a simple proxy server for RTSP-based Nest
 * Serilog console logging (Docker friendly).
 * Transparent RTP translator: forwards RTP/RTCP without rewriting sequence numbers or timestamps ([RFC 3550 §7.1](https://www.rfc-editor.org/rfc/rfc3550#section-7.1) transport translator semantics).
 
+## License
+This project is licensed under the MIT License. See [LICENSE.txt](LICENSE.txt) for details.
+
+Third-party dependencies and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Quickstart
 
-#### Build & Run
+### Install & Run with Docker (Recommended)
+
+You can run NestProxy directly using Docker from the GitHub Container Registry:
+
+```sh
+docker pull ghcr.io/basvbeek/nestproxy:latest
+docker run --rm -d -p 8080:8080 -p 8554-8564:8554-8564 -v ./config:/app/config ghcr.io/basvbeek/nestproxy:latest
+```
+
+To run with Docker Compose, use the following example:
+
+```yaml
+services:
+  nestproxy:
+    container_name: nestproxy
+    image: ghcr.io/basvbeek/nestproxy:latest
+    ports:
+      - "8080:8080"
+      - "8554-8564:8554-8564"
+    volumes:
+      - ./config:/app/config
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+```
+
+### Build & Run
 
 Using .NET SDK:
 ```sh
@@ -38,22 +72,22 @@ dotnet run --project src/NestProxy.Server
 Using Docker:
 ```sh
 docker build -t nestproxy:latest .
-docker run --rm -d -p 5000:8080 -p 5001:8081 -p 8554-8564:8554-8564 -v ./config:/app/config --name nestproxy nestproxy:latest
+docker run --rm -d -p 8080:8080 -p 8554-8564:8554-8564 -v ./config:/app/config --name nestproxy nestproxy:latest
 ```
 
-#### Initial Setup
-Navigate to http://localhost:5000/ and refer to [docs/quickstart.md](docs/quickstart.md) for setup and usage instructions.
+### Initial Setup
+Navigate to http://localhost:8080/ and refer to [docs/quickstart.md](docs/quickstart.md) for setup and usage instructions.
 
-#### Configuration
+### Configuration
 Google auth/settings are stored in `config/google-settings.json` and credentials in `config/credentials.json` (created after auth). Config root defaults to `config` and can be overridden via appsettings:
-```
+```json
 "ConfigStorage": {
   "RootPath": "config"
 }
 ```
 
 Streaming settings (in `appsettings.json`):
-```
+```json
 "Streaming": {
   "RtspBasePort": 8554,
   "KeepaliveEnabled": true,
@@ -64,6 +98,7 @@ Streaming settings (in `appsettings.json`):
 }
 ```
 Notes:
+- RtspBasePort: TCP port server listens on for RTSP streams (default 8554).
 - KeepaliveEnabled: toggles upstream keepalive loop (default true).
 - KeepaliveMode: Options | GetParameter | Rtcp (default Options)
   - Options: send periodic RTSP OPTIONS.
@@ -73,22 +108,77 @@ Notes:
 - StreamExtensionOffsetSeconds: how many seconds before expiry to extend stream (default 30).
 - PacketChannelCapacity: channel buffer size for packet forwarding (default 1000).
 
-#### Docker compose (example)
+### Environment Variables
+The following environment variables can be used to override configuration settings in `appsettings.json`:
+- `ConfigStorage__RootPath`: Overrides `ConfigStorage:RootPath`.
+- `Streaming__RtspBasePort`: Overrides `Streaming:RtspBasePort`.
+- `Streaming__KeepaliveEnabled`: Overrides `Streaming:KeepaliveEnabled`.
+- `Streaming__KeepaliveMode`: Overrides `Streaming:KeepaliveMode`.
+- `Streaming__KeepaliveIntervalSeconds`: Overrides `Streaming:KeepaliveIntervalSeconds`.
+- `Streaming__StreamExtensionOffsetSeconds`: Overrides `Streaming:StreamExtensionOffsetSeconds`.
+- `Streaming__PacketChannelCapacity`: Overrides `Streaming:PacketChannelCapacity`.
+- `Logging__LogLevel__Default`: Overrides default log level (e.g., Debug, Information, Warning, Error).
+
+### Configure HTTPS (SSL Certificates)
+
+#### Creating a Self-Signed Certificate
+
+You can create a self-signed certificate for development or testing using the .NET CLI:
+
+**Using .NET CLI (cross-platform):**
+
+```sh
+dotnet dev-certs https --export-path mycert.pfx --password yourpassword
+```
+
+This will generate a `mycert.pfx` file you can use for HTTPS as shown below.
+
+**Using OpenSSL (Linux/macOS):**
+
+```sh
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
+openssl pkcs12 -export -out mycert.pfx -inkey key.pem -in cert.pem -password pass:yourpassword
+```
+
+You can now use `mycert.pfx` as shown below.
+
+#### Using Your Certificate in Docker
+
+To enable HTTPS with your own SSL certificate, mount your certificate file into the container and set the required environment variables for .NET/Kestrel.
+
+**Example with Docker:**
+
+```sh
+docker run --rm -d \
+  -p 8080:8080 \
+  -p 8081:8081 \
+  -p 8554-8564:8554-8564 \
+  -v ./config:/app/config \
+  -v ./mycert.pfx:/https/mycert.pfx:ro \
+  -e ASPNETCORE_HTTPS_PORTS=8081 \
+  -e ASPNETCORE_Kestrel__Certificates__Default__Path=/https/mycert.pfx \
+  -e ASPNETCORE_Kestrel__Certificates__Default__Password=yourpassword \
+  ghcr.io/basvbeek/nestproxy:latest
+```
+
+**Example with Docker Compose:**
+
 ```yaml
+services:
   nestproxy:
     container_name: nestproxy
-    image: nestproxy
-    build:
-      context: ./NestProxy
-      dockerfile: Dockerfile
+    image: ghcr.io/basvbeek/nestproxy:latest
     ports:
-      - "9080:8080"
-      - "9081:8081"
-      - "9554-9564:8554-8564"
-    environment:
-      - Streaming__RtspBasePort=8554
+      - "8080:8080"
+      - "8081:8081"
+      - "8554-8564:8554-8564"
     volumes:
       - ./config:/app/config
+      - ./mycert.pfx:/https/mycert.pfx:ro
+    environment:
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/mycert.pfx
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=yourpassword
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -96,6 +186,10 @@ Notes:
         max-size: "10m"
         max-file: "5"
 ```
+
+**Notes:**
+- Use a `.pfx` file for Kestrel (default for .NET).
+- Adjust the path and password as needed.
 
 ## Architecture
 When an upstream token refresh is required, the server establishes a new RTSP TCP “staging” connection (OPTIONS → DESCRIBE → SETUP for each track → PLAY). As soon as the first RTP packet is received on the staging connection, forwarding switches over atomically and a TEARDOWN is sent upstream to the old session. A synthetic RTCP BYE is sent downstream to indicate the old session's end. This avoids reuse of the old Session ID and minimizes glitches.

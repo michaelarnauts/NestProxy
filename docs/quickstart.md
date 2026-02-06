@@ -2,7 +2,7 @@
 
 This guide walks you through using the NestProxy application UI to configure Google Device Access credentials, authorize with your Google account, discover cameras, enable streaming, and obtain local RTSP URLs. Instructions for cloning, building, hosting, or running the server are documented separately.
 
-> NOTE: Throughout this document, "Base URL" refers to the root address where the application is already running (e.g. `https://localhost:5001` or your deployed domain). Replace it accordingly when navigating.
+> NOTE: Throughout this document, "Base URL" refers to the root address where the application is already running (e.g. `https://localhost:8081` or your deployed domain). Replace it accordingly when navigating.
 
 > **IMPORTANT**: Google OAuth and Device Access credentials are stored on disk under the configured `ConfigStorage` root (default `config`). Settings live in `config/google-settings.json`; credentials are written to `config/credentials.json` after authorization. Camera metadata is stored per-camera in `config/cameras/*.json`.
 
@@ -22,7 +22,7 @@ Populate the following fields, then click **Save**:
 - **Client ID** – From your Google Cloud OAuth 2.0 Web Client.
 - **Client Secret** – From the same OAuth client (keep private).
 - **Project ID** – The Device Access Project ID (from the Device Access Console, not the Cloud numeric project number).
-- **Redirect URI** – Must exactly match one of the Authorized redirect URIs configured in the OAuth client (examples: `https://localhost:5001/api/auth/callback`, or a public domain callback path when deployed).
+- **Redirect URI** – Must exactly match one of the Authorized redirect URIs configured in the OAuth client (examples: `https://localhost:8081/api/auth/callback`, or a public domain callback path when deployed).
 
 > **Note**: These settings are persisted to `config/google-settings.json` (under the `ConfigStorage:RootPath` directory). They are **not** stored in `appsettings.json` or environment variables.
 
