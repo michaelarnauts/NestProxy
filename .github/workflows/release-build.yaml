@@ -1,0 +1,39 @@
+name: Build and Push Container on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract version without leading v
+        id: version
+        run: |
+          RAW_TAG="${{ github.event.release.tag_name }}"
+          CLEAN_TAG="${RAW_TAG#v}"
+          echo "clean_tag=$CLEAN_TAG" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/nestproxy:${{ steps.version.outputs.clean_tag }}
+            ghcr.io/${{ github.repository_owner }}/nestproxy:latest
