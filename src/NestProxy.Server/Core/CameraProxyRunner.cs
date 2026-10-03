@@ -178,8 +178,8 @@ public class CameraProxyRunner(
 
             if (disconnected.IsCompleted)
             {
-                // Throw to trigger session regeneration in outer loop.
-                throw new InvalidOperationException($"Upstream disconnected for camera {CameraId}");
+                // Return to let the outer loop regenerate the session.
+                return;
             }
 
             try
