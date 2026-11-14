@@ -122,6 +122,14 @@ public sealed class UpstreamSessionStateMachine(string cameraId, string instance
 
     private async Task HandleDescribeResponseAsync(RtspConnection connection, RtspResponse response)
     {
+        // A failed DESCRIBE has no SDP. Publishing it would replace the camera's SDP with an empty one and break every
+        // downstream client, while the active session may still be streaming fine.
+        if (!response.IsSuccessStatusCode)
+        {
+            logger.LogWarning("[{CameraId}] [sess-{Sess}] DESCRIBE failed with {Code} {Phrase}; keeping the current SDP.", cameraId, instanceId, response.ReturnCode, response.ReasonPhrase);
+            return;
+        }
+
         try
         {
             RtspRequest? orig = response.OriginalRequest;
