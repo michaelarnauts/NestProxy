@@ -29,6 +29,9 @@ public class UpstreamOrchestrator : ICameraRelay
     private IUpstreamSession? _activeSession;
     private IUpstreamSession? _stagingSession;
 
+    // SDP of a staging session, held back until that session is promoted.
+    private readonly Dictionary<IUpstreamSession, SdpResolutionResult> _pendingSdp = [];
+
     private CancellationTokenSource? _keepaliveCts;
     private Task? _keepaliveTask;
     private IKeepAliveStrategy? _keepAliveStrategy;
@@ -109,6 +112,24 @@ public class UpstreamOrchestrator : ICameraRelay
 
     private void OnDescribeResolved(IUpstreamSession session, SdpResolutionResult result)
     {
+        // A refresh may describe a stream that never delivers media (e.g. an SDP without tracks). Publishing its SDP
+        // right away would break downstream clients while the active session is still streaming, so hold it until
+        // the staging session proves itself with RTP and gets promoted.
+        lock (_switchLock)
+        {
+            if (session == _stagingSession)
+            {
+                _pendingSdp[session] = result;
+                _logger.LogInformation("[{CameraId}] [sess-{Sess}] Holding SDP ({Lines} lines) until promotion.", CameraId, session.InstanceId, result.SdpLines.Length);
+                return;
+            }
+        }
+
+        RegisterSdp(session, result);
+    }
+
+    private void RegisterSdp(IUpstreamSession session, SdpResolutionResult result)
+    {
         try
         {
             CameraStream stream = new()
@@ -156,8 +177,14 @@ public class UpstreamOrchestrator : ICameraRelay
 
         string updated = AuthQueryUpdater.UpdateAuth(baseUrl, newAuthToken);
 
-        _stagingSession = _activeSession == _primarySession ? _secondarySession : _primarySession;
-        IUpstreamSession stagingSession = _stagingSession;
+        IUpstreamSession stagingSession = _activeSession == _primarySession ? _secondarySession : _primarySession;
+        lock (_switchLock)
+        {
+            // Drop an SDP left over from an earlier refresh of this session that never got promoted.
+            _pendingSdp.Remove(stagingSession);
+            _stagingSession = stagingSession;
+        }
+
         await stagingSession.ConnectAsync(
             new Uri(updated),
             data => ForwardRtpAsync(stagingSession, data),
@@ -205,6 +232,11 @@ public class UpstreamOrchestrator : ICameraRelay
             if (_activeSession == newSession)
             {
                 return;
+            }
+
+            if (_pendingSdp.Remove(newSession, out SdpResolutionResult? sdp))
+            {
+                RegisterSdp(newSession, sdp);
             }
 
             IUpstreamSession? oldSession = _activeSession;
