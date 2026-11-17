@@ -42,6 +42,11 @@ public sealed class StreamingOptionsValidator : IValidateOptions<StreamingOption
             failures.Add("PacketChannelCapacity must be 16-10000.");
         }
 
+        if (options.UpstreamMediaTimeoutSeconds < 5 || options.UpstreamMediaTimeoutSeconds > 300)
+        {
+            failures.Add("UpstreamMediaTimeoutSeconds must be 5-300.");
+        }
+
         return failures.Count > 0 ? ValidateOptionsResult.Fail(failures) : ValidateOptionsResult.Success;
     }
 }

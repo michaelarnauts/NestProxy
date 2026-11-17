@@ -20,6 +20,7 @@ public class UpstreamOrchestrator : ICameraRelay
     private readonly ILocalRtspServer _localServer;
     private readonly BindingSelector _bindingSelector;
     private readonly IOptions<StreamingOptions> _options;
+    private readonly TimeProvider _timeProvider;
 
     private readonly Lock _switchLock = new();
 
@@ -35,6 +36,10 @@ public class UpstreamOrchestrator : ICameraRelay
     private CancellationTokenSource? _keepaliveCts;
     private Task? _keepaliveTask;
     private IKeepAliveStrategy? _keepAliveStrategy;
+    private CancellationTokenSource? _watchdogCts;
+    private long _lastMediaTimestamp;
+    private volatile bool _hasReceivedMedia;
+    private volatile bool _mediaTimeoutRaised;
     private bool _disposed;
 
     /// <summary>
@@ -46,19 +51,22 @@ public class UpstreamOrchestrator : ICameraRelay
     /// <param name="bindingSelector">Binding selector for SSRC management.</param>
     /// <param name="options">Streaming options.</param>
     /// <param name="sessionFactory">Factory for creating upstream session instances.</param>
+    /// <param name="timeProvider">Clock for the media timeout; defaults to the system clock.</param>
     public UpstreamOrchestrator(
         string cameraId,
         ILogger logger,
         ILocalRtspServer localServer,
         BindingSelector bindingSelector,
         IOptions<StreamingOptions> options,
-        IUpstreamSessionFactory sessionFactory)
+        IUpstreamSessionFactory sessionFactory,
+        TimeProvider? timeProvider = null)
     {
         _cameraId = cameraId;
         _logger = logger;
         _localServer = localServer;
         _bindingSelector = bindingSelector;
         _options = options;
+        _timeProvider = timeProvider ?? TimeProvider.System;
 
         _primarySession = sessionFactory.Create(cameraId, AcceptAllServerCertificate, "primary");
         _primarySession.DescribeResolved += result => OnDescribeResolved(_primarySession, result);
@@ -80,6 +88,9 @@ public class UpstreamOrchestrator : ICameraRelay
     public bool IsRunning { get; private set; }
 
     /// <inheritdoc />
+    public bool HasReceivedMedia => _hasReceivedMedia;
+
+    /// <inheritdoc />
     public event Action? Disconnected;
 
     /// <summary>
@@ -97,6 +108,7 @@ public class UpstreamOrchestrator : ICameraRelay
 
         _activeSession = _primarySession;
         _stagingSession = null;
+        Interlocked.Exchange(ref _lastMediaTimestamp, _timeProvider.GetTimestamp());
 
         IUpstreamSession session = _primarySession;
         await session.ConnectAsync(
@@ -108,6 +120,50 @@ public class UpstreamOrchestrator : ICameraRelay
 
         _logger.LogInformation("[{CameraId}] [sess-{Sess}] Upstream session created and connecting to {Url}", CameraId, _primarySession.InstanceId, upstreamUrl);
         IsRunning = true;
+        StartMediaWatchdog();
+    }
+
+    /// <summary>
+    /// Raises <see cref="Disconnected"/> once when the active session has delivered no RTP for
+    /// <see cref="StreamingOptions.UpstreamMediaTimeoutSeconds"/>. Upstream can stop sending media while the
+    /// connection stays open (seen with Nest), which no socket-level check detects. Called by the watchdog loop.
+    /// </summary>
+    /// <returns><c>true</c> if the timeout was raised by this call.</returns>
+    public bool CheckMediaTimeout()
+    {
+        if (!IsRunning || _mediaTimeoutRaised)
+        {
+            return false;
+        }
+
+        TimeSpan silence = _timeProvider.GetElapsedTime(Interlocked.Read(ref _lastMediaTimestamp));
+        if (silence < TimeSpan.FromSeconds(_options.Value.UpstreamMediaTimeoutSeconds))
+        {
+            return false;
+        }
+
+        _mediaTimeoutRaised = true;
+        _logger.LogWarning("[{CameraId}] [sess-{Sess}] No media from the active upstream session for {Seconds:F0} s; treating it as disconnected.", CameraId, _activeSession?.InstanceId, silence.TotalSeconds);
+        Disconnected?.Invoke();
+        return true;
+    }
+
+    private void StartMediaWatchdog()
+    {
+        _watchdogCts = new CancellationTokenSource();
+        CancellationToken token = _watchdogCts.Token;
+        _ = Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (!await Safe.InvokeAsync(async () => await Task.Delay(TimeSpan.FromSeconds(1), _timeProvider, token)))
+                {
+                    break;
+                }
+
+                Safe.Invoke(() => CheckMediaTimeout(), _logger, $"camera {CameraId} media watchdog");
+            }
+        }, token);
     }
 
     private void OnDescribeResolved(IUpstreamSession session, SdpResolutionResult result)
@@ -210,6 +266,8 @@ public class UpstreamOrchestrator : ICameraRelay
             return;
         }
 
+        Interlocked.Exchange(ref _lastMediaTimestamp, _timeProvider.GetTimestamp());
+        _hasReceivedMedia = true;
         await _localServer.ForwardRtpAsync(CameraId, data);
     }
 
@@ -343,6 +401,8 @@ public class UpstreamOrchestrator : ICameraRelay
 
         if (disposing)
         {
+            Safe.Invoke(() => _watchdogCts?.Cancel());
+            Safe.Invoke(() => _watchdogCts?.Dispose());
             Safe.Invoke(() => _keepaliveCts?.Cancel());
             Safe.Invoke(() => _keepaliveCts?.Dispose());
             Safe.Invoke(() => _primarySession.Dispose());
@@ -357,6 +417,7 @@ public class UpstreamOrchestrator : ICameraRelay
     /// </summary>
     protected virtual async ValueTask DisposeAsyncCore()
     {
+        Safe.Invoke(() => _watchdogCts?.Cancel());
         Safe.Invoke(() => _keepaliveCts?.Cancel());
         IsRunning = false;
 

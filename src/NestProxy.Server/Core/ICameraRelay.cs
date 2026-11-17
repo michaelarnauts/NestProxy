@@ -25,7 +25,13 @@ public interface ICameraRelay : IDisposable, IAsyncDisposable
     bool IsRunning { get; }
 
     /// <summary>
-    /// Raised when the active upstream session disconnects and the relay no longer receives media.
+    /// True once the relay has forwarded RTP from its active upstream session.
+    /// </summary>
+    bool HasReceivedMedia { get; }
+
+    /// <summary>
+    /// Raised when the active upstream session disconnects or stops delivering media, so the relay no longer
+    /// receives media.
     /// </summary>
     event Action? Disconnected;
 

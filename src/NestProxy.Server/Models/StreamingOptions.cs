@@ -44,4 +44,11 @@ public class StreamingOptions
     /// Maximum number of packets to buffer per upstream session. Default 1000.
     /// </summary>
     public int PacketChannelCapacity { get; set; } = 1000;
+
+    /// <summary>
+    /// Seconds without RTP from the active upstream session before it is treated as disconnected and a new stream
+    /// is requested. Nest sends a keyframe every 4 s plus continuous audio, so silence this long means the stream
+    /// is dead even when the connection stays open. Default 15.
+    /// </summary>
+    public int UpstreamMediaTimeoutSeconds { get; set; } = 15;
 }

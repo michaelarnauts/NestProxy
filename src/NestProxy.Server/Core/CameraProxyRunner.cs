@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 
+using NestProxy.Server.Data;
 using NestProxy.Server.Services;
 
 namespace NestProxy.Server.Core;
@@ -24,6 +25,7 @@ public class CameraProxyRunner(
 
     private Task? _loopTask;
     private ICameraRelay? _relay;
+    private int _consecutiveFailures;
     private bool _disposed;
 
     /// <summary>
@@ -86,9 +88,11 @@ public class CameraProxyRunner(
             }
             catch (Exception ex)
             {
-                // Log but continue - allow runner to recover on next iteration.
+                // Log but continue - the next iteration retries after a backoff delay.
                 logger.LogError(ex, "[{CameraId}] Unexpected error in camera session - will retry", CameraId);
-                await Task.Delay(TimeSpan.FromSeconds(5), _cts.Token);
+
+                // Errors before a relay was started are not counted yet; never retry without a delay.
+                _consecutiveFailures = Math.Max(_consecutiveFailures, 1);
             }
         }
 
@@ -108,6 +112,49 @@ public class CameraProxyRunner(
             return;
         }
 
+        // A stream that delivered media is replaced at once; after streams that delivered nothing (e.g. Google
+        // answering 404 for a while) back off so we do not request a new stream every few seconds.
+        TimeSpan retryDelay = GetRetryDelay(_consecutiveFailures);
+        if (retryDelay > TimeSpan.Zero)
+        {
+            logger.LogInformation("[{CameraId}] Previous stream attempt failed or delivered no media ({Failures} in a row) - waiting {Delay} s before requesting a new stream", CameraId, _consecutiveFailures, retryDelay.TotalSeconds);
+            await Task.Delay(retryDelay, _cts.Token);
+        }
+
+        RelayStart? relay = null;
+        try
+        {
+            relay = await StartRelayAsync(scope, cameraRepository, camera);
+            await ExtensionLoopAsync(camera.ExpiresAt!.Value, relay.Disconnected);
+        }
+        finally
+        {
+            if (!_cts.IsCancellationRequested)
+            {
+                _consecutiveFailures = relay?.Relay.HasReceivedMedia == true ? 0 : _consecutiveFailures + 1;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Delay before requesting a new stream after <paramref name="consecutiveFailures"/> attempts in a row that
+    /// delivered no media: none after a working stream, then 5, 10, 20, 40 and at most 60 seconds.
+    /// </summary>
+    public static TimeSpan GetRetryDelay(int consecutiveFailures)
+    {
+        if (consecutiveFailures <= 0)
+        {
+            return TimeSpan.Zero;
+        }
+
+        double seconds = 5 * Math.Pow(2, Math.Min(consecutiveFailures - 1, 4));
+        return TimeSpan.FromSeconds(Math.Min(seconds, 60));
+    }
+
+    private sealed record RelayStart(ICameraRelay Relay, Task Disconnected);
+
+    private async Task<RelayStart> StartRelayAsync(IServiceScope scope, ICameraRepository cameraRepository, CameraEntity camera)
+    {
         // Always acquire a fresh RTSP URL.
         var sdm = scope.ServiceProvider.GetRequiredService<GoogleSdmService>();
         RtspStreamResult? rtspStream = await sdm.GenerateRtspStreamAsync(camera, _cts.Token);
@@ -147,8 +194,7 @@ public class CameraProxyRunner(
         await _relay.StartAsync(camera.LastRtspUrl!, _cts.Token);
         runtimeState.SetRunning(CameraId, true);
 
-        // Start stream token extension loop.
-        await ExtensionLoopAsync(camera.ExpiresAt!.Value, disconnected.Task);
+        return new RelayStart(_relay, disconnected.Task);
     }
 
     private async Task ExtensionLoopAsync(DateTime initialExpiry, Task disconnected)
