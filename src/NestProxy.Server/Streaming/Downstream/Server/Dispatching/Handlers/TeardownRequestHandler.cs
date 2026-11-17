@@ -29,21 +29,32 @@ public sealed class TeardownRequestHandler(
     /// <inheritdoc />
     public async Task HandleAsync(RtspServerConnection connection, RtspRequest request, string logPrefix, CancellationToken cancellationToken = default)
     {
-        if (request.Headers.TryGetValue("Session", out string? sessionId) && !string.IsNullOrWhiteSpace(sessionId))
+        // Reply before cleaning up: removing a session or the connection disposes the connection.
+        try
         {
-            // Delegate session removal to SessionManager for proper cleanup.
-            sessionManager.RemoveSessionById(sessionId);
+            await SendOkAsync(connection, request, logPrefix, cancellationToken).ConfigureAwait(false);
         }
-        else
+        finally
         {
-            // No session ID ? remove all sessions for this connection.
-            sessionManager.RemoveSessionsForConnection(connection);
-            if (_onRemoveConnection != null)
+            if (request.Headers.TryGetValue("Session", out string? sessionId) && !string.IsNullOrWhiteSpace(sessionId))
             {
-                await _onRemoveConnection.Invoke(connection).ConfigureAwait(false);
+                // Delegate session removal to SessionManager for proper cleanup.
+                sessionManager.RemoveSessionById(sessionId);
+            }
+            else
+            {
+                // No session ID ? remove all sessions for this connection.
+                sessionManager.RemoveSessionsForConnection(connection);
+                if (_onRemoveConnection != null)
+                {
+                    await _onRemoveConnection.Invoke(connection).ConfigureAwait(false);
+                }
             }
         }
+    }
 
+    private async Task SendOkAsync(RtspServerConnection connection, RtspRequest request, string logPrefix, CancellationToken cancellationToken)
+    {
         RtspResponse response = request.CreateResponse();
         string headers = responseFormatter.FormatResponseHeaders(response, "CSeq", "Session", "Transport", "Content-Type", "Content-Base", "Content-Length");
         logger.LogInformation("{Prefix} Received TEARDOWN {Code} headers: {Headers}.", logPrefix, response.StatusCode, headers);
